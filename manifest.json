@@ -1,0 +1,30 @@
+{
+  "required_api_version": "2",
+  "name": "Developer Tools",
+  "description": "Helpful tools for developers.",
+  "developer_name": "Grzegorz Poznachowski",
+  "icon": "images/icon.png",
+  "options": {
+    "query_debounce": 0.1
+  },
+  "preferences": [
+    {
+      "id": "ts_keyword",
+      "type": "keyword",
+      "name": "Timestamp Converter",
+      "default_value": "ts"
+    },
+    {
+      "id": "jwt_keyword",
+      "type": "keyword",
+      "name": "JWT Decoder",
+      "default_value": "jwt"
+    },
+    {
+      "id": "b64_keyword",
+      "type": "keyword",
+      "name": "Base64 Encoder/Decoder",
+      "default_value": "b64"
+    }
+  ]
+}
