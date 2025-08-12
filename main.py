@@ -152,7 +152,7 @@ class StringManipulationKeywordQueryEventListener(EventListener):
             return RenderResultListAction([
                 ExtensionResultItem(icon='images/string.png',
                                   name='String Manipulation',
-                                  description='Enter a string and a command (e.g., "hello world upper")',
+                                  description='Enter a command [remove, upper, lower, camel, snake, kebab, sentence] and a string',
                                   on_enter=HideWindowAction())
             ])
 
