@@ -1,9 +1,9 @@
 {
   "required_api_version": "2",
   "name": "Developer Tools",
-  "description": "Helpful tools for developers.",
+  "description": "Helpful tools for developers",
   "developer_name": "Grzegorz Poznachowski",
-  "icon": "images/icon.png",
+  "icon": "images/toolbox.png",
   "options": {
     "query_debounce": 0.1
   },
@@ -25,6 +25,12 @@
       "type": "keyword",
       "name": "Base64 Encoder/Decoder",
       "default_value": "b64"
+    },
+    {
+      "id": "str_keyword",
+      "type": "keyword",
+      "name": "String Manipulation",
+      "default_value": "str"
     }
   ]
 }
