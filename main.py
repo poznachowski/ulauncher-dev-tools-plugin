@@ -1,19 +1,21 @@
-import logging
-import datetime
 import base64
 import json
-from ulauncher.api.client.Extension import Extension
+import logging
+
 from ulauncher.api.client.EventListener import EventListener
-from ulauncher.api.shared.event import KeywordQueryEvent, ItemEnterEvent
-from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
-from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
-from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
-from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
+from ulauncher.api.client.Extension import Extension
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
+from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
+from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
+from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
+from ulauncher.api.shared.event import KeywordQueryEvent
+from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 
 logger = logging.getLogger(__name__)
 
 import re
+from timestamp_utils import unix_to_utc_local_strings, iso_instant_to_unix_millis, datestr_to_unix_millis
+
 
 class DeveloperToolsExtension(Extension):
     def __init__(self):
@@ -41,33 +43,44 @@ class TimestampKeywordQueryEventListener(EventListener):
         # try to convert from timestamp
         try:
             timestamp = int(query)
-            utc_dt = datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
-            local_dt = utc_dt.astimezone()
+            utc_str, local_str = unix_to_utc_local_strings(timestamp)
             items = [
                 ExtensionResultItem(
                     icon='images/clock.png',
-                    name=f"UTC: {utc_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}",
+                    name=f"UTC: {utc_str}",
                     description='Copy to clipboard',
-                    on_enter=CopyToClipboardAction(utc_dt.strftime('%Y-%m-%d %H:%M:%S %Z'))
+                    on_enter=CopyToClipboardAction(utc_str)
                 ),
                 ExtensionResultItem(
                     icon='images/clock.png',
-                    name=f"Local: {local_dt.strftime('%Y-%m-%d %H:%M:%S %Z')}",
+                    name=f"Local: {local_str}",
                     description='Copy to clipboard',
-                    on_enter=CopyToClipboardAction(local_dt.strftime('%Y-%m-%d %H:%M:%S %Z'))
+                    on_enter=CopyToClipboardAction(local_str)
                 )
             ]
             return RenderResultListAction(items)
         except (ValueError, OSError):
             pass
 
-        # try to convert to timestamp
         try:
-            dt = datetime.datetime.strptime(query, '%Y-%m-%d %H:%M:%S')
-            timestamp = int(dt.timestamp())
-            return RenderResultListAction([ExtensionResultItem(icon='images/clock.png', name=str(timestamp), description='Copy to clipboard', on_enter=CopyToClipboardAction(str(timestamp)))])
+            timestamp_ms = iso_instant_to_unix_millis(query)
+            return RenderResultListAction([
+                ExtensionResultItem(
+                    icon='images/clock.png',
+                    name=str(timestamp_ms),
+                    description='Copy to clipboard (milliseconds since epoch)',
+                    on_enter=CopyToClipboardAction(str(timestamp_ms))
+                )
+            ])
+        except Exception:
+            pass
+
+        # try to convert 'YYYY-MM-DD HH:MM:SS' to timestamp (return milliseconds)
+        try:
+            timestamp_ms = datestr_to_unix_millis(query)
+            return RenderResultListAction([ExtensionResultItem(icon='images/clock.png', name=str(timestamp_ms), description='Copy to clipboard', on_enter=CopyToClipboardAction(str(timestamp_ms)))])
         except ValueError:
-            return RenderResultListAction([ExtensionResultItem(icon='images/clock.png', name='Invalid input', description='Please enter a valid Unix timestamp or a date in YYYY-MM-DD HH:MM:SS format.', on_enter=HideWindowAction())])
+            return RenderResultListAction([ExtensionResultItem(icon='images/clock.png', name='Invalid input', description='Please enter a valid Unix timestamp or a date in YYYY-MM-DD HH:MM:SS or ISO-8601 instant format.', on_enter=HideWindowAction())])
 
 class JwtKeywordQueryEventListener(EventListener):
     def on_event(self, event, extension):
