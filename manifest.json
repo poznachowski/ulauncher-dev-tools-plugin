@@ -31,6 +31,12 @@
       "type": "keyword",
       "name": "String Manipulation",
       "default_value": "str"
+    },
+    {
+      "id": "u7_keyword",
+      "type": "keyword",
+      "name": "UUIDv7 to Timestamp",
+      "default_value": "u7"
     }
   ]
 }

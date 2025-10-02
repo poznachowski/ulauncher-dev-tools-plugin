@@ -14,7 +14,7 @@ from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 logger = logging.getLogger(__name__)
 
 import re
-from timestamp_utils import unix_to_utc_local_strings, iso_instant_to_unix_millis, datestr_to_unix_millis
+from timestamp_utils import unix_to_utc_local_strings, iso_instant_to_unix_millis, datestr_to_unix_millis, uuidv7_to_datetime_string
 
 
 class DeveloperToolsExtension(Extension):
@@ -24,6 +24,7 @@ class DeveloperToolsExtension(Extension):
         self.subscribe(KeywordQueryEvent, JwtKeywordQueryEventListener())
         self.subscribe(KeywordQueryEvent, Base64KeywordQueryEventListener())
         self.subscribe(KeywordQueryEvent, StringManipulationKeywordQueryEventListener())
+        self.subscribe(KeywordQueryEvent, UUIDv7KeywordQueryEventListener())
 
 class TimestampKeywordQueryEventListener(EventListener):
     def on_event(self, event, extension):
@@ -249,6 +250,43 @@ class StringManipulationKeywordQueryEventListener(EventListener):
             return RenderResultListAction([ExtensionResultItem(icon='images/string.png', name='Invalid command', description='Please enter a valid command.', on_enter=HideWindowAction())])
 
         return RenderResultListAction([ExtensionResultItem(icon='images/string.png', name=result, description='Copy to clipboard', on_enter=CopyToClipboardAction(result))])
+
+class UUIDv7KeywordQueryEventListener(EventListener):
+    def on_event(self, event, extension):
+        if event.get_keyword() != extension.preferences['u7_keyword']:
+            return
+
+        query = event.get_argument() or ""
+
+        if not query.strip():
+            return RenderResultListAction([
+                ExtensionResultItem(
+                    icon='images/clock.png',
+                    name='UUIDv7 to Timestamp',
+                    description='Enter a UUIDv7 to extract its timestamp',
+                    on_enter=HideWindowAction()
+                )
+            ])
+
+        try:
+            datetime_string = uuidv7_to_datetime_string(query)
+            return RenderResultListAction([
+                ExtensionResultItem(
+                    icon='images/clock.png',
+                    name=datetime_string,
+                    description='Copy timestamp to clipboard',
+                    on_enter=CopyToClipboardAction(datetime_string)
+                )
+            ])
+        except ValueError as e:
+            return RenderResultListAction([
+                ExtensionResultItem(
+                    icon='images/clock.png',
+                    name='Invalid UUIDv7',
+                    description=str(e),
+                    on_enter=HideWindowAction()
+                )
+            ])
 
 
 if __name__ == '__main__':

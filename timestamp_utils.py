@@ -115,3 +115,72 @@ def iso_instant_to_unix_millis(iso_str: str) -> int:
     return int(dt.timestamp() * 1000)
 
 
+def uuidv7_to_datetime_string(uuid_str: str) -> str:
+    """
+    Extract timestamp from UUIDv7 and convert to ISO 8601 format string.
+
+    UUIDv7 format (RFC 9562):
+    - First 48 bits (12 hex chars) contain Unix timestamp in milliseconds
+    - Version field (4 bits) at bits 48-51 must be 0111 (7)
+    - Variant field (2 bits) at bits 64-65 must be 10
+
+    Args:
+        uuid_str: UUIDv7 string with or without hyphens
+
+    Returns:
+        ISO 8601 formatted datetime string like '2025-10-02T12:58:46.991Z'
+
+    Raises:
+        ValueError: If the UUID format is invalid or not version 7
+    """
+    # Remove hyphens if present
+    clean_uuid = uuid_str.replace('-', '').strip()
+
+    # Validate length (UUID should be 32 hex chars)
+    if len(clean_uuid) != 32:
+        raise ValueError(f"Invalid UUID length: expected 32 hex chars, got {len(clean_uuid)}")
+
+    try:
+        # Validate hex characters
+        int(clean_uuid, 16)
+    except ValueError:
+        raise ValueError("UUID contains invalid hexadecimal characters")
+
+    # Check version field (bits 48-51, which is the first hex digit at position 12)
+    # In standard UUID format: xxxxxxxx-xxxx-Vxxx-xxxx-xxxxxxxxxxxx
+    # Position 12 in clean string (0-indexed) is the version digit
+    version_hex = clean_uuid[12]
+    version = int(version_hex, 16)
+
+    # The high nibble contains the version, should be 0111 (7) for UUIDv7
+    # In practice, the version hex digit should be '7'
+    if version != 7:
+        raise ValueError(f"Not a UUIDv7: version field is {version}, expected 7")
+
+    # Check variant field (bits 64-65, which is at position 16)
+    # The variant should be 10xx (RFC 4122/9562 variant)
+    variant_hex = clean_uuid[16]
+    variant_value = int(variant_hex, 16)
+    # Variant bits should be 10xx, meaning the hex value should be 8, 9, A, or B
+    if variant_value not in (8, 9, 0xA, 0xB):
+        raise ValueError(f"Invalid UUID variant: expected RFC 4122 variant (8, 9, A, or B), got {variant_hex}")
+
+    try:
+        # Extract first 48 bits (12 hex characters)
+        timestamp_hex = clean_uuid[:12]
+        timestamp_ms = int(timestamp_hex, 16)
+
+        # Convert to datetime
+        timestamp_seconds = timestamp_ms / 1000.0
+        dt = datetime.datetime.fromtimestamp(timestamp_seconds, tz=datetime.timezone.utc)
+
+        # Format as ISO 8601 with milliseconds
+        # Format: YYYY-MM-DDTHH:MM:SS.sssZ
+        iso_string = dt.strftime('%Y-%m-%dT%H:%M:%S')
+        # Add milliseconds
+        milliseconds = timestamp_ms % 1000
+        iso_string = f"{iso_string}.{milliseconds:03d}Z"
+
+        return iso_string
+    except (ValueError, OverflowError) as e:
+        raise ValueError(f"Invalid UUID format or timestamp: {e}")
